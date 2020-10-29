@@ -60,36 +60,43 @@ const NOTES = [
   {
     name: 'C',
     position: 1,
+    prefInterval: 1,
     interval: 2
   },
   {
     name: 'D',
     position: 3,
+    prefInterval: 2,
     interval: 2
   },
   {
     name: 'E',
     position: 5,
+    prefInterval: 2,
     interval: 1
   },
   {
     name: 'F',
     position: 6,
+    prefInterval: 1,
     interval: 2
   },
   {
     name: 'G',
     position: 8,
+    prefInterval: 2,
     interval: 2
   },
   {
     name: 'A',
     position: 10,
+    prefInterval: 2,
     interval: 2
   },
   {
     name: 'B',
     position: 12,
+    prefInterval: 2,
     interval: 1
   }
 ]
@@ -107,43 +114,61 @@ const SEMITONE = [
 
 const getNoteFinish = (noteStart, interval, semitoneStart) => {
   const startIndex = NOTES.findIndex(item => item === noteStart);
-  const steps = isLetStart(startIndex, interval);
+  const newNotes = getNewNotesArr(NOTES, startIndex);
+  const steps = getStep(startIndex, interval.degrees, NOTES);
   const firstStep = 1;
   const findNote = NOTES[steps - firstStep].name;
-  const semitone = findSemitone(startIndex, interval.semitone, findNote, semitoneStart);
+  const semitone = findSemitone(newNotes, interval.semitone, findNote, semitoneStart);
   return findNote + semitone;
 }
 
-const findSemitone = (startIndex, interval, note, semitoneStart) => {
-  const newNotes = getNewNotesArr(startIndex);
+const getNoteFinishDSC = (noteStart, interval, semitoneStart, direction) => {
+  const reversNotes = NOTES.slice().reverse();
+  const startIndex = reversNotes.findIndex(item => item === noteStart);
+  const newNotes = getNewNotesArr(reversNotes, startIndex);
+  const steps = getStep(startIndex, interval.degrees, reversNotes);
+  const findNote = reversNotes[steps - 1].name;
+  const semitone = findSemitoneDSC(newNotes, interval.semitone, findNote, semitoneStart);
+  return findNote + semitone;
+}
+
+const findSemitone = (arrNotes, degrees, note, semitoneStart) => {
   let passedSemitone = 0; 
-  for (let i = 0; i < newNotes.length; i += 1) {
-    if ( newNotes[i].name === note) {
+  for (let i = 0; i < arrNotes.length; i += 1) {
+    if ( arrNotes[i].name === note) {
       break
     };
-    passedSemitone += newNotes[i].interval;
+    passedSemitone += arrNotes[i].interval
   }
-  const semitone = interval - passedSemitone + semitoneStart;
+  const semitone = degrees - passedSemitone + semitoneStart;
   return getSemitone(semitone);
 }
 
-const getNewNotesArr = (index) => {
-  const startArr = NOTES.slice(index);
-  const finish = NOTES.slice(0, index);
-  const newArr = startArr.concat(finish);
+const findSemitoneDSC = (arrNotes, degrees, note, semitoneStart) => {
+  let passedSemitone = 0; 
+  for (let i = 0; i < arrNotes.length; i += 1) {
+    if ( arrNotes[i].name === note) {
+      break
+    };
+    passedSemitone -= arrNotes[i].prefInterval;
+  }
+  const semitone = semitoneStart - degrees - passedSemitone;
+  return getSemitone(semitone);
+}
+
+const getNewNotesArr = (arrNotes, index) => {
+  const start = arrNotes.slice(index);
+  const finish = arrNotes.slice(0, index);
+  const newArr = start.concat(finish);
   return newArr;
 }
 
-const passedInterval = (pos, semitone,) => {
-
-}
-
-const isLetStart = (startIndex, interval) => {
-  const position = startIndex + interval.degrees;
-  if( position >= NOTES.length ) {
-    return position - NOTES.length;
+const getStep = (startIndex, degrees, arrNotes) => {
+  const step = startIndex + degrees;
+  if( step >= arrNotes.length ) {
+    return step - arrNotes.length;
   }
-  return position;
+  return step;
 }
 
 const getNoteStart = note => {
@@ -186,27 +211,21 @@ function intervalConstruction(arr) {
 
     const [intervalName, note, direction = 'asc'] = arr;
 
-    switch (direction) {
-
-      case 'asc':
-        const noteStart = getNoteStart(note);
+    const noteStart = getNoteStart(note);
     
-        const semitone = (note.length > 1) ?
-          SEMITONE.find(item => item.name === note[1]).semitone
-          : 0;
-        // const positionStart = getPosition(noteStart.position, semitone.semitone);
-        // console.log(positionStart);
-    
-        const interval = getInterval(intervalName);
-    
-        const noteFinish = getNoteFinish(noteStart, interval, semitone);
-        console.log(noteFinish);
+    const semitone = (note.length > 1) ?
+      SEMITONE.find(item => item.name === note[1]).semitone
+      : 0;
 
-        break;
+    const interval = getInterval(intervalName);
 
-      case 'dsc':
-        console.log('Hi');
-    }
+    const noteFinish = (direction === 'dsc') ?
+      getNoteFinishDSC(noteStart, interval, semitone) :
+      getNoteFinish(noteStart, interval, semitone);
+
+      console.log(noteFinish);
+    return noteFinish;
+
    } catch (err) {
      alert(err.message);
    }
@@ -215,13 +234,13 @@ function intervalConstruction(arr) {
 const TEST_DATA = [
 ['M2', 'C', 'asc'],	//D
 ['P5', 'B', 'asc'],	//F#
-// ['m2', 'Bb', 'dsc'], //A
-// ['M3', 'Cb', 'dsc'],	//Abb
-// ['P4', 'G#', 'dsc'], //D#
-// ['m3', 'B', 'dsc'], //G#
+['m2', 'Bb', 'dsc'], //A
+['M3', 'Cb', 'dsc'],	//Abb
+['P4', 'G#', 'dsc'], //D#
+['m3', 'B', 'dsc'], //G#
 ['m2', 'Fb', 'asc'], //Gbb
-// ['M2', 'E#', 'dsc'], //D#
-// ['P4', 'E', 'dsc'], //B
+['M2', 'E#', 'dsc'], //D#
+['P4', 'E', 'dsc'], //B
 ['m2', 'D#', 'asc'], //E
 ['M7', 'G', 'asc'], //F#
 ]
